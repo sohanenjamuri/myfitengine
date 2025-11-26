@@ -1,0 +1,16 @@
+
+
+[
+  { "name": "Chicken Breast", "category": "protein", "calories": 165, "tags": ["lean","low-saturated-fat"] },
+  { "name": "Tofu", "category": "protein", "calories": 120, "tags": ["plant-protein","low-potassium"] },
+  { "name": "Salmon", "category": "protein", "calories": 208, "tags": ["omega-3","low-sodium"] },
+  { "name": "Greek Yogurt", "category": "protein", "calories": 100, "tags": ["low-fat","low-sodium"] },
+  { "name": "Oats", "category": "carb", "calories": 150, "tags": ["low-glycemic"] },
+  { "name": "Brown Rice", "category": "carb", "calories": 215, "tags": ["whole-grain"] },
+  { "name": "White Rice", "category": "carb", "calories": 205, "tags": ["high-glycemic"] },
+  { "name": "Broccoli", "category": "veg", "calories": 35, "tags": ["low-potassium"] },
+  { "name": "Spinach", "category": "veg", "calories": 23, "tags": ["high-potassium"] },
+  { "name": "Avocado", "category": "fat", "calories": 160, "tags": ["healthy-fat","high-potassium"] },
+  { "name": "Olive Oil", "category": "fat", "calories": 119, "tags": ["healthy-fat","low-sodium"] },
+  { "name": "Lentils", "category": "protein", "calories": 116, "tags": ["plant-protein","low-fat"] }
+]
