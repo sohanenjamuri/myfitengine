@@ -1,0 +1,9 @@
+[
+  { "name": "Brisk Walk", "type": "cardio", "equipment": [], "notes": "30 minutes steady", "tags": [], "duration": "30 min" },
+  { "name": "Cycling (stationary)", "type": "cardio", "equipment": ["bike"], "notes": "20-30 minutes", "tags": ["low-impact"], "duration": "25 min" },
+  { "name": "Goblet Squat", "type": "strength", "equipment": ["dumbbells","kettlebell"], "notes": "3 sets x 8-12 reps", "tags": [] , "sets": "3x8-12"},
+  { "name": "Bodyweight Push-up", "type": "strength", "equipment": [], "notes": "3 sets x 8-15", "tags": [], "sets": "3x8-15" },
+  { "name": "Dumbbell Row", "type": "strength", "equipment": ["dumbbells"], "notes": "3 sets x 8-12", "tags": [], "sets": "3x8-12" },
+  { "name": "Heavy Deadlift", "type": "strength", "equipment": ["barbell"], "notes": "4 sets x 4-6", "tags": ["very-heavy","max-effort"], "sets": "4x4-6" },
+  { "name": "Plank", "type": "core", "equipment": [], "notes": "3 sets to failure", "tags": [], "sets": "3 sets" }
+]
