@@ -53,7 +53,7 @@ export default function Register() {
 
       await setDoc(doc(db, "users", user.uid), profile);
 
-      // require relogin
+      
       await signOut(auth);
 
       window.location.replace("/login");

@@ -1,4 +1,4 @@
-// src/pages/DiseasePage.jsx
+
 import React from "react";
 import { Link } from "react-router-dom";
 

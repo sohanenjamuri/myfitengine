@@ -1,190 +1,4 @@
 
-// import React, { useState } from "react";
-// import DiseasePage from "../../pages/DiseasePage";
-// import PlannerResult from "../../components/PlannerResult";
-// import { planMeals } from "../../utils/mealPlanner";
-// import { planWorkout } from "../../utils/workoutPlanner";
-
-// export default function PCOS() {
-//   const [plan, setPlan] = useState(null);
-//   const [loading, setLoading] = useState(false);
-
-//   async function createPlanner() {
-//     setLoading(true);
-//     const user = JSON.parse(localStorage.getItem("user_profile") || "null") || { weight: 70, height: 170, age: 30, gender: "female" };
-//     const meals = planMeals({ disease: "pcos", user, mealCount: 3 });
-//     const workout = planWorkout({ disease: "pcos", equipment: [], focus: "full" });
-//     setPlan({ ...meals, workout });
-//     try { localStorage.setItem("myfit_last_plan", JSON.stringify({ tdee: meals.tdee, meals: meals.meals })); } catch (_) {}
-//     setLoading(false);
-//   }
-
-//   return (
-//     <>
-//       <DiseasePage
-//         slug="pcos"
-//         title="PCOS"
-//         heroImage=""
-//         quickTips={[
-//           "Prioritize low-glycemic carbs and fibre",
-//           "Focus on resistance training to improve insulin sensitivity",
-//           "Pay attention to sleep & stress management"
-//         ]}
-//         recommendedMeals={[
-//           "Greek yogurt bowl with berries & seeds",
-//           "Quinoa salad with chickpeas and veg",
-//           "Stir-fried tofu & greens with brown rice"
-//         ]}
-//         recommendedWorkouts={[
-//           { name: "Strength Training", notes: "3x/week focusing on big muscle groups." },
-//           { name: "Short HIIT", notes: "10–15 min intervals if tolerated." }
-//         ]}
-//       />
-
-//       <div className="max-w-4xl mx-auto p-6 text-center">
-//         <button onClick={createPlanner} disabled={loading} className="bg-emerald-600 text-white px-4 py-2 rounded">
-//           {loading ? "Creating..." : "Create Planner for PCOS"}
-//         </button>
-//         <PlannerResult plan={plan} />
-//       </div>
-//     </>
-//   );
-// }
-
-// src/pages/disease/PCOS.jsx
-// import React, { useEffect, useState } from "react";
-// import ProfileForm from "../../components/ProfileForm";
-// import { planMeals } from "../../utils/mealPlanner";
-// import { planWorkout } from "../../utils/workoutPlanner";
-
-// export default function PCOS() {
-//   const [profile, setProfile] = useState(null);
-//   const [plan, setPlan] = useState(null);
-//   const [loading, setLoading] = useState(false);
-
-//   useEffect(() => {
-//     try {
-//       const raw = localStorage.getItem("user_profile");
-//       if (raw) setProfile(JSON.parse(raw));
-//     } catch (_) {}
-//   }, []);
-
-//   function handleProfileSave(p) {
-//     setProfile(p);
-//     try {
-//       localStorage.setItem("user_profile", JSON.stringify(p));
-//     } catch (_) {}
-//   }
-
-//   async function createPlanner() {
-//     setLoading(true);
-//     const user = {
-//       age: profile?.age ?? 30,
-//       height: profile?.height ?? 165,
-//       weight: profile?.weight ?? 68,
-//       gender: profile?.gender ?? "female",
-//     };
-
-//     try {
-//       const meals = await planMeals({ disease: "pcos", user, mealCount: 3 });
-//       const workout = await planWorkout({ disease: "pcos", user, equipment: [], focus: "full" });
-
-//       const p = {
-//         disease: "pcos",
-//         tdee: meals.tdee,
-//         meals: meals.meals || [],
-//         macros: meals.macros || null,
-//         workout,
-//         createdAt: Date.now(),
-//       };
-
-//       setPlan(p);
-//       try {
-//         localStorage.setItem("myfit_last_plan", JSON.stringify(p));
-//       } catch (_) {}
-//     } catch (err) {
-//       console.error("createPlanner error:", err);
-//       alert("Failed to create a plan. Try again.");
-//     } finally {
-//       setLoading(false);
-//     }
-//   }
-
-//   return (
-//     <div className="min-h-screen p-6 bg-gray-50">
-//       <div className="max-w-4xl mx-auto">
-//         <header className="mb-6">
-//           <h1 className="text-2xl font-bold">PCOS — Planner</h1>
-//           <p className="text-sm text-gray-600">
-//             PCOS-friendly planner: insulin-sensitizing carbs, balanced protein and strength-focused workouts.
-//           </p>
-//         </header>
-
-//         <section className="bg-white p-6 rounded shadow mb-6">
-//           <h3 className="font-semibold mb-3">Your profile</h3>
-//           <ProfileForm initialProfile={profile} onSave={handleProfileSave} />
-//           <div className="mt-4 flex gap-3">
-//             <button
-//               onClick={createPlanner}
-//               disabled={loading}
-//               className="bg-emerald-600 text-white px-4 py-2 rounded disabled:opacity-60"
-//             >
-//               {loading ? "Creating…" : "Create Planner"}
-//             </button>
-//             <button onClick={() => setPlan(null)} className="px-3 py-2 border rounded">
-//               Reset Result
-//             </button>
-//           </div>
-//         </section>
-
-//         {plan ? (
-//           <section className="bg-white p-6 rounded shadow">
-//             <h3 className="font-semibold mb-3">Plan result</h3>
-
-//             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-//               <div className="p-4 border rounded">
-//                 <div className="text-sm text-gray-500">Target kcal</div>
-//                 <div className="text-2xl font-bold">{plan.tdee ?? "—"}</div>
-//                 {plan.macros && (
-//                   <div className="text-sm text-gray-600 mt-2">
-//                     P: {plan.macros.proteinG}g • C: {plan.macros.carbsG}g • F: {plan.macros.fatsG}g
-//                   </div>
-//                 )}
-//               </div>
-
-//               <div className="p-4 border rounded">
-//                 <div className="text-sm text-gray-500">Meals</div>
-//                 <ul className="list-disc pl-5 mt-2">
-//                   {(plan.meals && plan.meals.length) ? plan.meals.map((m, i) => (
-//                     <li key={i}>{m}</li>
-//                   )) : <li className="text-sm text-gray-500">No meals generated</li>}
-//                 </ul>
-//               </div>
-
-//               <div className="p-4 border rounded">
-//                 <div className="text-sm text-gray-500">Workout</div>
-//                 <ul className="list-disc pl-5 mt-2">
-//                   {(plan.workout && plan.workout.length) ? plan.workout.map((w, i) => (
-//                     <li key={i}>
-//                       <strong>{w.name}</strong> — <span className="text-sm text-gray-600">{w.notes}</span>
-//                     </li>
-//                   )) : <li className="text-sm text-gray-500">No workout generated</li>}
-//                 </ul>
-//               </div>
-//             </div>
-
-//             <div className="text-sm text-gray-500">Saved to local storage.</div>
-//           </section>
-//         ) : (
-//           <div className="text-gray-600 mt-4">No plan yet. Complete your profile and click Create Planner.</div>
-//         )}
-//       </div>
-//     </div>
-//   );
-// }
-
-
-// src/pages/disease/PCOS.jsx
 import React, { useState, useEffect } from "react";
 import ProfileForm from "../../components/ProfileForm";
 import PlannerResult from "../../components/PlannerResult";
@@ -198,10 +12,10 @@ export default function PCOS() {
   const [profile, setProfile] = useState(null);
   const [selectedMeals, setSelectedMeals] = useState([]);
   const [result, setResult] = useState(null);
-  const [step, setStep] = useState(1); // 1 = profile, 2 = meal select, 3 = results
+  const [step, setStep] = useState(1);
   const navigate = useNavigate();
 
-  // PCOS-friendly sample meal options (user will choose preferred ones)
+  
   const MEAL_OPTIONS = [
     "Greek yogurt bowl with berries & seeds",
     "Quinoa salad with chickpeas & veg",
@@ -238,11 +52,11 @@ export default function PCOS() {
       return;
     }
 
-    // compute using shared utils
+ 
     const mealPlan = planMeals(profile, "pcos");
     const workout = planWorkout(profile, "pcos");
 
-    // prefer user-selected meals if provided
+   
     let finalMeals;
     if (selectedMeals && selectedMeals.length) {
       finalMeals = selectedMeals.map((t) => ({ title: t }));
@@ -302,12 +116,12 @@ export default function PCOS() {
           <p className="text-gray-600 mt-2">Enter a few profile details, pick PCOS-friendly meals, then create your tailored plan.</p>
         </header>
 
-        {/* STEP 1: PROFILE */}
+        
         <div id="profileForm" className="mb-6">
           <ProfileForm initial={profile || {}} onSubmit={handleProfileSubmit} submitLabel={profile ? "Update Profile" : "Next: Choose Meals"} />
         </div>
 
-        {/* STEP 2: MEAL SELECTION */}
+        
         {step >= 2 && (
           <section id="mealSelection" className="bg-white p-6 rounded-2xl shadow-sm mb-6">
             <h2 className="text-xl font-semibold mb-3">Choose preferred meals (optional)</h2>
@@ -336,7 +150,7 @@ export default function PCOS() {
           </section>
         )}
 
-        {/* STEP 3: RESULTS */}
+      
         <div id="plannerResults" className="mt-6">
           <PlannerResult result={result} onSave={handleSave} />
         </div>
