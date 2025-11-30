@@ -9,6 +9,7 @@ import Kidney from "./pages/disease/Kidney";
 import PCOS from "./pages/disease/PCOS";
 import Hypertension from "./pages/disease/Hypertension";
 import Cardiac from "./pages/disease/Cardiac";
+// import workoutPlanner from "./utils/workoutPlanner";
 
 function App() {
   return (
@@ -23,6 +24,8 @@ function App() {
         <Route path="/pcos" element={<PCOS />} />
         <Route path="/hypertension" element={<Hypertension />} />
         <Route path="/cardiac" element={<Cardiac />} />
+        <Route path="/meals" element={<planMeals/>}/>
+        {/* <Route path="/planner" element={<workoutPlanner/>}/> */}
       </Routes>
     </BrowserRouter>
   );
