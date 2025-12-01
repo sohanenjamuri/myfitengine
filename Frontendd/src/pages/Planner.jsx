@@ -1,19 +1,52 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { onAuthStateChanged } from "firebase/auth";
+import { auth } from "../firebase-config";
+import { getUser } from "../utils/api";
 
 export default function Planner() {
   const location = useLocation();
   const navigate = useNavigate();
+  const [plan, setPlan] = useState(location?.state?.plan || null);
+  const [loading, setLoading] = useState(!location?.state?.plan);
 
-  
-  const fromState = location?.state?.plan || null;
-  const stored = (() => {
-    try {
-      return JSON.parse(localStorage.getItem("myfit_saved_plan") || localStorage.getItem("myfit_last_plan") || "null");
-    } catch { return null; }
-  })();
+  useEffect(() => {
+    if (plan) return;
 
-  const plan = fromState || stored;
+    const unsub = onAuthStateChanged(auth, async (u) => {
+      if (!u) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const user = await getUser(u.uid);
+        if (user && user.lastPlan) {
+          setPlan(user.lastPlan);
+        } else if (user && user.savedPlans && user.savedPlans.length > 0) {
+          // Use the most recent saved plan
+          const sorted = user.savedPlans.sort((a, b) => b.timestamp - a.timestamp);
+          const latest = sorted[0];
+          // Normalize structure: savedPlans have data inside planData
+          setPlan({
+            disease: latest.disease,
+            timestamp: latest.timestamp,
+            ...latest.planData
+          });
+        }
+      } catch (e) {
+        console.error("Failed to load plan:", e);
+      } finally {
+        setLoading(false);
+      }
+    });
+
+    return () => unsub();
+  }, [plan]);
+
+  if (loading) {
+    return <div className="min-h-screen flex items-center justify-center p-6 bg-gray-50">Loading plan...</div>;
+  }
 
   if (!plan) {
     return (
@@ -46,19 +79,38 @@ export default function Planner() {
             <div>Protein: <strong>{macros?.proteinG || "—"} g</strong></div>
             <div>Carbs: <strong>{macros?.carbsG || "—"} g</strong></div>
             <div>Fat: <strong>{macros?.fatG || "—"} g</strong></div>
-            
+
           </div>
         </section>
 
         <section className="bg-white p-6 rounded-2xl shadow mb-6">
           <h2 className="font-semibold mb-3">Meals</h2>
           <div className="space-y-3">
-            {meals.length ? meals.map((m, i) => (
-              <div key={i} className="p-3 rounded border bg-gray-50">
-                <div className="font-medium">{m.title || m.name || `Meal ${i+1}`}</div>
-                {m.desc && <div className="text-sm text-gray-600">{m.desc}</div>}
+            {Array.isArray(meals) ? (
+              meals.length ? meals.map((m, i) => (
+                <div key={i} className="p-3 rounded border bg-gray-50">
+                  <div className="font-medium">{m.title || m.name || `Meal ${i + 1}`}</div>
+                  {m.desc && <div className="text-sm text-gray-600">{m.desc}</div>}
+                </div>
+              )) : <div className="text-sm text-gray-500">No meals in this plan</div>
+            ) : (
+              <div className="space-y-4">
+                {['breakfast', 'lunch', 'dinner', 'snack'].map(type => (
+                  meals[type] && meals[type].length > 0 && (
+                    <div key={type}>
+                      <h3 className="font-medium text-emerald-700 text-sm uppercase tracking-wide mb-2">{type}</h3>
+                      <div className="space-y-2">
+                        {meals[type].map((m, i) => (
+                          <div key={i} className="p-3 rounded border bg-gray-50">
+                            <div className="font-medium">{m.title}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )
+                ))}
               </div>
-            )) : <div className="text-sm text-gray-500">No meals in this plan</div>}
+            )}
           </div>
         </section>
 

@@ -1,18 +1,13 @@
-// src/components/DiseaseProfileForm.jsx
 import React, { useState } from "react";
+import { saveDiseaseProfile } from "../utils/api";
 
-/**
- * DiseaseProfileForm
- * - initial: optional initial object { name, age, height, weight, gender }
- * - onSubmit(values) : called with typed values (numbers for age,height,weight)
- * - submitLabel : label for submit button
- * - storageKey : optional localStorage key to save (default 'user_profile_<disease>')
- */
 export default function DiseaseProfileForm({
   initial = {},
   onSubmit,
   submitLabel = "Next: Choose Meals",
-  storageKey = "user_profile_disease",
+  // storageKey = "user_profile_disease", // Deprecated
+  uid,
+  disease
 }) {
   const [name, setName] = useState(initial.name || "");
   const [age, setAge] = useState(initial.age ?? "");
@@ -27,7 +22,7 @@ export default function DiseaseProfileForm({
     if (!a || a <= 0) { alert("Please enter valid age."); return false; }
     if (!h || h <= 0) { alert("Please enter valid height (cm)."); return false; }
     if (!w || w <= 0) { alert("Please enter valid weight (kg)."); return false; }
-    if (!["male","female"].includes(gender)) { alert("Please select gender."); return false; }
+    if (!["male", "female"].includes(gender)) { alert("Please select gender."); return false; }
     return true;
   };
 
@@ -44,9 +39,15 @@ export default function DiseaseProfileForm({
     };
 
     try {
-      // store locally for disease-specific page
-      try { localStorage.setItem(storageKey, JSON.stringify(payload)); } catch (_) {}
+      // Save to MongoDB if uid and disease are provided
+      if (uid && disease) {
+        await saveDiseaseProfile(uid, disease, payload);
+      }
+
       if (onSubmit) await onSubmit(payload);
+    } catch (err) {
+      console.error("Failed to save disease profile:", err);
+      alert("Failed to save profile. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -56,21 +57,21 @@ export default function DiseaseProfileForm({
     <form onSubmit={handle} className="space-y-4 bg-white p-6 rounded-2xl shadow-sm">
       <div>
         <label className="block text-sm font-medium">Name</label>
-        <input type="text" value={name} onChange={(e)=>setName(e.target.value)}
-               className="mt-1 w-full border px-3 py-2 rounded" placeholder="Full name" />
+        <input type="text" value={name} onChange={(e) => setName(e.target.value)}
+          className="mt-1 w-full border px-3 py-2 rounded" placeholder="Full name" />
       </div>
 
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="block text-sm font-medium">Age</label>
-          <input type="number" value={age} onChange={(e)=>setAge(e.target.value)}
-                 className="mt-1 w-full border px-3 py-2 rounded" min="1" />
+          <input type="number" value={age} onChange={(e) => setAge(e.target.value)}
+            className="mt-1 w-full border px-3 py-2 rounded" min="1" />
         </div>
 
         <div>
           <label className="block text-sm font-medium">Gender</label>
-          <select value={gender} onChange={(e)=>setGender(e.target.value)}
-                  className="mt-1 w-full border px-3 py-2 rounded">
+          <select value={gender} onChange={(e) => setGender(e.target.value)}
+            className="mt-1 w-full border px-3 py-2 rounded">
             <option value="male">Male</option>
             <option value="female">Female</option>
           </select>
@@ -80,14 +81,14 @@ export default function DiseaseProfileForm({
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="block text-sm font-medium">Height (cm)</label>
-          <input type="number" value={height} onChange={(e)=>setHeight(e.target.value)}
-                 className="mt-1 w-full border px-3 py-2 rounded" min="1" />
+          <input type="number" value={height} onChange={(e) => setHeight(e.target.value)}
+            className="mt-1 w-full border px-3 py-2 rounded" min="1" />
         </div>
 
         <div>
           <label className="block text-sm font-medium">Weight (kg)</label>
-          <input type="number" value={weight} onChange={(e)=>setWeight(e.target.value)}
-                 className="mt-1 w-full border px-3 py-2 rounded" min="1" />
+          <input type="number" value={weight} onChange={(e) => setWeight(e.target.value)}
+            className="mt-1 w-full border px-3 py-2 rounded" min="1" />
         </div>
       </div>
 

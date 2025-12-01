@@ -33,16 +33,16 @@
 //     return () => unsub();
 //   }, [navigate]);
 
-  
+
 //   async function handleProfileSubmit(values) {
-    
+
 //     setProfile(values);
 //     setStep(2); 
-    
+
 
 //     setSelectedMeals([]);
 //     setResult(null);
-    
+
 
 //     setTimeout(() => {
 //       document.getElementById("mealSelection")?.scrollIntoView({ behavior: "smooth" });
@@ -60,18 +60,18 @@
 //       return;
 //     }
 
-    
+
 //     const mealPlan = planMeals(profile, "kidney");
 //     const workout = planWorkout(profile, "kidney");
 
-    
+
 
 //     let finalMeals;
 //     if (selectedMeals && selectedMeals.length) {
-     
+
 
 //       finalMeals = selectedMeals.map((t) => ({ title: t }));
-   
+
 
 //       const needed = 4 - finalMeals.length;
 //       if (needed > 0) {
@@ -93,7 +93,7 @@
 //     setResult(combined);
 //     setStep(3);
 
-  
+
 //     try {
 //       localStorage.setItem("myfit_last_plan", JSON.stringify({ disease: "kidney", tdee: combined.tdee, meals: combined.meals }));
 //     } catch (_) {}
@@ -130,12 +130,12 @@
 //           <p className="text-gray-600 mt-2">We'll ask a few profile questions, let you choose some kidney-friendly meals, then create a tailored plan.</p>
 //         </header>
 
-        
+
 //         <div id="profileForm" className="mb-6">
 //           <ProfileForm initial={profile || {}} onSubmit={handleProfileSubmit} submitLabel={profile ? "Update Profile" : "Next: Choose Meals"} />
 //         </div>
 
-        
+
 //         {step >= 2 && (
 //           <section id="mealSelection" className="bg-white p-6 rounded-2xl shadow-sm mb-6">
 //             <h2 className="text-xl font-semibold mb-3">Choose preferred meals (optional)</h2>
@@ -164,7 +164,7 @@
 //           </section>
 //         )}
 
-       
+
 //         <div id="plannerResults" className="mt-6">
 //           <PlannerResult result={result} onSave={handleSave} />
 //         </div>
@@ -513,107 +513,101 @@
 import React, { useState, useEffect } from "react";
 import DiseaseProfileForm from "../../components/DisaeseProfileForm";
 import PlannerResult from "../../components/PlannerResult";
-import { planMeals } from "../../utils/mealPlanner";
+import { planMeals, INGREDIENTS } from "../../utils/mealPlanner";
 import { planWorkout } from "../../utils/workoutPlanner";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "../../firebase-config";
 import { useNavigate } from "react-router-dom";
-
-const MEAL_OPTIONS = [
-  "White rice bowl + low-potassium veg",
-  "Grilled fish + light salad",
-  "Tofu & veggies (controlled portion)",
-  "Steamed white fish + steamed veg",
-  "Quinoa & veg (small portion)",
-  "Light lentil soup (controlled sodium)"
-];
+import { getUser, savePlan } from "../../utils/api";
 
 export default function Kidney() {
   const [profile, setProfile] = useState(null); // disease-specific profile
-  const [selectedMeals, setSelectedMeals] = useState([]);
+  const [selectedIngredients, setSelectedIngredients] = useState({ proteins: [], carbs: [], vitamins: [] });
   const [result, setResult] = useState(null);
   const [step, setStep] = useState(1); // 1 = profile, 2 = meals, 3 = result
   const navigate = useNavigate();
-  const storageKey = "user_profile_kidney";
+  const [uid, setUid] = useState(null);
+  const diseaseName = "kidney";
 
   useEffect(() => {
     // ensure user is logged in, otherwise redirect
-    const unsub = onAuthStateChanged(auth, (u) => {
-      if (!u) navigate("/login");
-    });
-    // load disease-specific profile from localStorage if present
-    try {
-      const raw = localStorage.getItem(storageKey);
-      if (raw) {
-        const saved = JSON.parse(raw);
-        if (saved && (saved.name || saved.age || saved.height || saved.weight)) {
-          setProfile(saved);
-          setStep(2); // go to meal selection automatically
-        }
+    const unsub = onAuthStateChanged(auth, async (u) => {
+      if (!u) {
+        navigate("/login");
+        return;
       }
-    } catch (e) {
-      console.warn("Could not parse kidney profile:", e);
-    }
+      setUid(u.uid);
+
+      // Fetch disease-specific profile from MongoDB
+      try {
+        const user = await getUser(u.uid);
+        if (user && user.diseaseProfiles && user.diseaseProfiles[diseaseName]) {
+          const saved = user.diseaseProfiles[diseaseName];
+          if (saved && (saved.name || saved.age || saved.height || saved.weight)) {
+            setProfile(saved);
+            setStep(2);
+          }
+        }
+      } catch (e) {
+        console.warn("Could not fetch Kidney profile:", e);
+      }
+    });
     return () => unsub();
   }, [navigate]);
 
   const onProfileSubmit = (values) => {
     setProfile(values);
     setStep(2);
-    // ensure localStorage saved already by the form; if you also want Firestore saving, do it here
-    setSelectedMeals([]);
+    setSelectedIngredients({ proteins: [], carbs: [], vitamins: [] });
     setResult(null);
-    setTimeout(()=> document.getElementById("mealSelection")?.scrollIntoView({behavior:"smooth"}), 50);
+    setTimeout(() => document.getElementById("mealSelection")?.scrollIntoView({ behavior: "smooth" }), 50);
   };
 
-  const toggleMealOption = (title) => {
-    setSelectedMeals(prev => prev.includes(title) ? prev.filter(t=>t!==title) : [...prev, title]);
+  const toggleIngredient = (category, item) => {
+    setSelectedIngredients(prev => {
+      const list = prev[category];
+      const newList = list.includes(item) ? list.filter(i => i !== item) : [...list, item];
+      return { ...prev, [category]: newList };
+    });
   };
 
-  const handleCalculatePlan = () => {
+  const handleCalculatePlan = async () => {
     if (!profile) {
       alert("Please enter your profile first.");
       return;
     }
 
-    const mealPlan = planMeals(profile, "kidney") || {};
-    const workout = planWorkout(profile, "kidney") || { items: [] };
-
-    let finalMeals;
-    if (selectedMeals && selectedMeals.length) {
-      finalMeals = selectedMeals.map(t => ({ title: t }));
-      const desired = (mealPlan.meals && mealPlan.meals.length) ? mealPlan.meals.length : 4;
-      const needed = Math.max(0, desired - finalMeals.length);
-      if (needed > 0) {
-        const filler = (mealPlan.meals || []).filter(m => !selectedMeals.includes(m.title)).slice(0, needed);
-        finalMeals = finalMeals.concat(filler);
-      }
-    } else {
-      finalMeals = mealPlan.meals || [];
-    }
+    const mealPlan = planMeals(profile, diseaseName, selectedIngredients);
+    const workout = planWorkout(profile, diseaseName) || { items: [] };
 
     const combined = {
       bmr: mealPlan.bmr || null,
       tdee: mealPlan.tdee || null,
       macros: mealPlan.macros || null,
-      meals: finalMeals,
+      meals: mealPlan.meals,
       workout
     };
 
     setResult(combined);
     setStep(3);
 
-    try {
-      localStorage.setItem("myfit_last_plan", JSON.stringify({ disease: "kidney", tdee: combined.tdee, meals: combined.meals }));
-    } catch (_) {}
-    setTimeout(()=> document.getElementById("plannerResults")?.scrollIntoView({behavior:"smooth"}), 80);
+    // Save last plan to MongoDB
+    if (uid) {
+      try {
+        await savePlan(uid, diseaseName, { tdee: combined.tdee, macros: combined.macros, meals: combined.meals, workout: combined.workout }, true);
+      } catch (_) { }
+    }
+    setTimeout(() => document.getElementById("plannerResults")?.scrollIntoView({ behavior: "smooth" }), 80);
   };
 
-  const handleSave = (res) => {
+  const handleSave = async (res) => {
     try {
-      const saved = { disease: "kidney", profile, timestamp: Date.now(), ...res };
-      localStorage.setItem("myfit_saved_plan", JSON.stringify(saved));
-      alert("Plan saved locally");
+      if (uid) {
+        await savePlan(uid, diseaseName, { ...profile, ...res }, false);
+        alert("Plan saved to profile");
+      } else {
+        alert("User not identified");
+      }
     } catch (e) {
       console.error(e);
       alert("Could not save plan");
@@ -640,42 +634,83 @@ export default function Kidney() {
               initial={profile || {}}
               onSubmit={onProfileSubmit}
               submitLabel="Next: Choose Meals"
-              storageKey={storageKey}
+              uid={uid}
+              disease={diseaseName}
             />
           </div>
         )}
 
         {step >= 2 && (
           <section id="mealSelection" className="bg-white p-6 rounded-2xl shadow-sm mb-6">
-            <div className="flex justify-between items-start">
+            <div className="flex justify-between items-start mb-4">
               <div>
-                <h2 className="text-xl font-semibold mb-1">Choose preferred meals (optional)</h2>
-                <p className="text-sm text-gray-600">Selected items will be prioritized in the final plan.</p>
+                <h2 className="text-xl font-semibold mb-1">Choose Ingredients</h2>
+                <p className="text-sm text-gray-600">Select your preferred ingredients to build your plan.</p>
               </div>
               <div>
                 <button onClick={editProfile} className="text-sm underline text-gray-600">Edit profile</button>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
-              {MEAL_OPTIONS.map(m => {
-                const checked = selectedMeals.includes(m);
-                return (
-                  <label key={m} className={`flex items-center gap-3 p-3 rounded-lg border ${checked ? "border-indigo-500 bg-indigo-50" : "border-gray-200 bg-white"}`}>
-                    <input type="checkbox" checked={checked} onChange={() => toggleMealOption(m)} />
-                    <div>
-                      <div className="font-medium">{m}</div>
-                      <div className="text-sm text-gray-500">Kidney-friendly, portion-controlled</div>
-                    </div>
-                  </label>
-                );
-              })}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* Proteins */}
+              <div>
+                <h3 className="font-semibold text-emerald-700 mb-2">Proteins</h3>
+                <div className="space-y-2">
+                  {INGREDIENTS.kidney.proteins.map(item => (
+                    <label key={item} className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={selectedIngredients.proteins.includes(item)}
+                        onChange={() => toggleIngredient('proteins', item)}
+                        className="rounded text-emerald-600 focus:ring-emerald-500"
+                      />
+                      <span className="text-sm text-gray-700">{item}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* Carbs */}
+              <div>
+                <h3 className="font-semibold text-emerald-700 mb-2">Carbs</h3>
+                <div className="space-y-2">
+                  {INGREDIENTS.kidney.carbs.map(item => (
+                    <label key={item} className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={selectedIngredients.carbs.includes(item)}
+                        onChange={() => toggleIngredient('carbs', item)}
+                        className="rounded text-emerald-600 focus:ring-emerald-500"
+                      />
+                      <span className="text-sm text-gray-700">{item}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* Vitamins */}
+              <div>
+                <h3 className="font-semibold text-emerald-700 mb-2">Vitamins (Veg/Fruit)</h3>
+                <div className="space-y-2">
+                  {INGREDIENTS.kidney.vitamins.map(item => (
+                    <label key={item} className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={selectedIngredients.vitamins.includes(item)}
+                        onChange={() => toggleIngredient('vitamins', item)}
+                        className="rounded text-emerald-600 focus:ring-emerald-500"
+                      />
+                      <span className="text-sm text-gray-700">{item}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
             </div>
 
-            <div className="mt-4 flex items-center gap-3">
-              <button onClick={handleCalculatePlan} className="bg-emerald-600 text-white px-4 py-2 rounded">Calculate Plan</button>
-              <button onClick={editProfile} className="px-4 py-2 rounded border">Change profile</button>
-              <button onClick={() => setSelectedMeals([])} className="px-3 py-2 rounded border">Clear selections</button>
+            <div className="mt-6 flex items-center gap-3">
+              <button onClick={handleCalculatePlan} className="bg-emerald-600 text-white px-4 py-2 rounded hover:bg-emerald-700 transition">Generate Plan</button>
+              <button onClick={() => setSelectedIngredients({ proteins: [], carbs: [], vitamins: [] })} className="px-3 py-2 rounded border hover:bg-gray-50">Clear selections</button>
             </div>
           </section>
         )}

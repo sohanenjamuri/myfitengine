@@ -12,6 +12,8 @@ import Cardiac from "./pages/disease/Cardiac";
 import Planner from "./pages/Planner";
 import Profile from "./pages/Profile";
 
+import None from "./pages/disease/None";
+
 function App() {
   return (
     <BrowserRouter>
@@ -25,9 +27,10 @@ function App() {
         <Route path="/pcos" element={<PCOS />} />
         <Route path="/hypertension" element={<Hypertension />} />
         <Route path="/cardiac" element={<Cardiac />} />
-        <Route path="/meals" element={<planMeals/>}/>
-        <Route path="/planner" element={<Planner/>}/>
-        <Route path="/Profile" element={<Profile/>}/>
+        <Route path="/none" element={<None />} />
+        <Route path="/meals" element={<planMeals />} />
+        <Route path="/planner" element={<Planner />} />
+        <Route path="/Profile" element={<Profile />} />
       </Routes>
     </BrowserRouter>
   );

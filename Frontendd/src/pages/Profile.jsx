@@ -4,6 +4,8 @@ import { useNavigate } from "react-router-dom";
 import { auth } from "../firebase-config";
 import { onAuthStateChanged, updateProfile } from "firebase/auth";
 
+import { getUser, saveUser } from "../utils/api";
+
 export default function Profile() {
   const navigate = useNavigate();
 
@@ -32,17 +34,14 @@ export default function Profile() {
 
       // fetch user profile from MongoDB backend
       try {
-        const response = await fetch(`http://localhost:4000/api/users/${u.uid}`);
-        if (response.ok) {
-          const data = await response.json();
+        const data = await getUser(u.uid);
+        if (data) {
           // Fill fields if present in backend
           if (data.name) setName(data.name);
           if (data.age !== undefined && data.age !== null) setAge(String(data.age));
           if (data.height !== undefined && data.height !== null) setHeight(String(data.height));
           if (data.weight !== undefined && data.weight !== null) setWeight(String(data.weight));
           if (data.gender) setGender(data.gender);
-        } else if (response.status !== 404) {
-          console.error("Failed to fetch user profile:", response.statusText);
         }
       } catch (err) {
         console.error("Failed to load user profile:", err);
@@ -85,7 +84,6 @@ export default function Profile() {
 
       // write to MongoDB backend
       const profilePayload = {
-        uid,
         name: name.trim(),
         age: Number(age),
         height: Number(height),
@@ -93,22 +91,7 @@ export default function Profile() {
         gender,
       };
 
-      const response = await fetch('http://localhost:4000/api/users', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(profilePayload),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to save profile to backend');
-      }
-
-      // mirror into localStorage if you use it elsewhere
-      try {
-        localStorage.setItem("user_profile", JSON.stringify(profilePayload));
-      } catch (_) { }
+      await saveUser(uid, profilePayload);
 
       // success feedback and redirect to dashboard
       alert("Profile updated successfully.");

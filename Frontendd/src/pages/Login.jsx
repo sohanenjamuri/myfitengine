@@ -4,14 +4,19 @@ import { useNavigate, Link } from "react-router-dom";
 import { auth, db } from "../firebase-config";
 import { signInWithEmailAndPassword, onAuthStateChanged } from "firebase/auth";
 import { doc, getDoc, setDoc } from "firebase/firestore";
+import { getUser, saveUserDiseases } from "../utils/api";
 
-const defaultRedirect = "/dashboard"; 
+const defaultRedirect = "/dashboard";
 function getTargetPathFromDiseases(diseases) {
   if (!Array.isArray(diseases) || diseases.length === 0) return null;
-  
+
   const first = diseases.find((d) => d && d.toLowerCase() !== "none");
   return first ? `/${first.toLowerCase()}` : null;
 }
+
+
+
+// ... (imports remain the same, except removed unused ones if any)
 
 export default function Login() {
   const navigate = useNavigate();
@@ -20,33 +25,46 @@ export default function Login() {
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  
+
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (u) => {
-      if (!u) return; 
+      if (!u) return;
 
-     
+
       try {
-        const snap = await getDoc(doc(db, "users", u.uid));
+        // Try fetching from MongoDB first
         let diseases = null;
-        if (snap.exists()) {
-          const data = snap.data();
-          if (Array.isArray(data?.diseases)) diseases = data.diseases;
+        const mongoUser = await getUser(u.uid);
+        if (mongoUser && Array.isArray(mongoUser.diseases) && mongoUser.diseases.length > 0) {
+          diseases = mongoUser.diseases;
+        } else {
+          // Fallback to Firestore if not in MongoDB
+          const snap = await getDoc(doc(db, "users", u.uid));
+          if (snap.exists()) {
+            const data = snap.data();
+            if (Array.isArray(data?.diseases)) {
+              diseases = data.diseases;
+              // Sync to MongoDB
+              await saveUserDiseases(u.uid, diseases);
+            }
+          }
         }
+
+        // Fallback to localStorage (only for reading legacy data, do not write back)
         if (!Array.isArray(diseases)) {
-          
           const fallback = JSON.parse(localStorage.getItem("user_diseases") || "null");
           diseases = Array.isArray(fallback) ? fallback : [];
-        } else {
-          
-          try { localStorage.setItem("user_diseases", JSON.stringify(diseases)); } catch (_) {}
+          if (diseases.length > 0) {
+            // Sync legacy localStorage to MongoDB
+            await saveUserDiseases(u.uid, diseases);
+          }
         }
 
         const target = getTargetPathFromDiseases(diseases) || defaultRedirect;
         navigate(target, { replace: true });
       } catch (e) {
         console.error("onAuthState error:", e);
-       
+
         navigate(defaultRedirect, { replace: true });
       }
     });
@@ -77,35 +95,48 @@ export default function Login() {
       const u = cred.user;
       if (!u) throw new Error("No user returned from signIn");
 
-      
+
       let diseases = null;
-      try {
-        const snap = await getDoc(doc(db, "users", u.uid));
-        if (snap.exists()) {
-          const data = snap.data();
-          if (Array.isArray(data?.diseases)) diseases = data.diseases;
-        }
-      } catch (fireFetchErr) {
-        console.error("Failed to fetch user doc:", fireFetchErr);
+
+      // Try MongoDB
+      const mongoUser = await getUser(u.uid);
+      if (mongoUser && Array.isArray(mongoUser.diseases)) {
+        diseases = mongoUser.diseases;
       }
 
-     
+      // Try Firestore
+      if (!Array.isArray(diseases)) {
+        try {
+          const snap = await getDoc(doc(db, "users", u.uid));
+          if (snap.exists()) {
+            const data = snap.data();
+            if (Array.isArray(data?.diseases)) diseases = data.diseases;
+          }
+        } catch (fireFetchErr) {
+          console.error("Failed to fetch user doc:", fireFetchErr);
+        }
+      }
+
+      // Try localStorage (Legacy)
       if (!Array.isArray(diseases)) {
         const cached = JSON.parse(localStorage.getItem("user_diseases") || "null");
         diseases = Array.isArray(cached) ? cached : ["none"];
-      } else {
-        try { localStorage.setItem("user_diseases", JSON.stringify(diseases)); } catch (_) {}
       }
 
-      
+      // Sync to MongoDB if we found diseases somewhere else
+      if (Array.isArray(diseases)) {
+        await saveUserDiseases(u.uid, diseases);
+      }
+
+
       try {
-        
+
         await setDoc(doc(db, "users", u.uid), { diseases }, { merge: true });
       } catch (fireWriteErr) {
         console.warn("Could not merge diseases back to Firestore:", fireWriteErr);
       }
 
-      
+
       const target = getTargetPathFromDiseases(diseases) || defaultRedirect;
       navigate(target, { replace: true });
     } catch (err) {

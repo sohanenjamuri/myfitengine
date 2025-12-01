@@ -1,5 +1,5 @@
 import React from "react";
-import {Link} from "react-router-dom";
+import { Link } from "react-router-dom";
 
 export default function PlannerResult({ result, onSave }) {
   if (!result) return null;
@@ -39,9 +39,46 @@ export default function PlannerResult({ result, onSave }) {
 
       <div className="mb-4">
         <h3 className="font-semibold mb-2">Meals</h3>
-        <ul className="list-disc pl-5 space-y-2">
-          {meals.map((m, i) => <li key={i}>{m.title}</li>)}
-        </ul>
+        <div className="space-y-4">
+          {meals.breakfast && (
+            <div>
+              <h4 className="font-medium text-emerald-700 text-sm uppercase tracking-wide">Breakfast</h4>
+              <ul className="list-disc pl-5 text-sm text-gray-700">
+                {meals.breakfast.map((m, i) => <li key={i}>{m.title}</li>)}
+              </ul>
+            </div>
+          )}
+          {meals.lunch && (
+            <div>
+              <h4 className="font-medium text-emerald-700 text-sm uppercase tracking-wide">Lunch</h4>
+              <ul className="list-disc pl-5 text-sm text-gray-700">
+                {meals.lunch.map((m, i) => <li key={i}>{m.title}</li>)}
+              </ul>
+            </div>
+          )}
+          {meals.dinner && (
+            <div>
+              <h4 className="font-medium text-emerald-700 text-sm uppercase tracking-wide">Dinner</h4>
+              <ul className="list-disc pl-5 text-sm text-gray-700">
+                {meals.dinner.map((m, i) => <li key={i}>{m.title}</li>)}
+              </ul>
+            </div>
+          )}
+          {meals.snack && (
+            <div>
+              <h4 className="font-medium text-emerald-700 text-sm uppercase tracking-wide">Snack</h4>
+              <ul className="list-disc pl-5 text-sm text-gray-700">
+                {meals.snack.map((m, i) => <li key={i}>{m.title}</li>)}
+              </ul>
+            </div>
+          )}
+          {/* Fallback for old array format if any */}
+          {Array.isArray(meals) && (
+            <ul className="list-disc pl-5 space-y-2">
+              {meals.map((m, i) => <li key={i}>{m.title}</li>)}
+            </ul>
+          )}
+        </div>
       </div>
 
       <div>
